@@ -163,12 +163,17 @@ project without re-deriving everything from scratch.
 - **Light-load overvoltage is not mitigated**: long lines' own charging pushes voltage up to ~1.13pu
   at low demand; at 100% demand 29/58 buses exceed 1.05pu at some point (3/58 fall below 0.95pu).
   A `ShuntImpedance` per affected bus is the standard fix, sized from a probe run (a temporary
-  zero-p PV generator held at 1.0pu at each violating bus, read back its required Q); tested on 10
-  buses whose required Q never changes sign, but not adopted into the committed network — fixing
-  a few overvoltage buses shrank the already-thin margin on 3 of the highest-transmission-angle
-  hours and cost them convergence, since a fixed device can't track hour-to-hour need the way a
-  switched reactor or SVC could. `network/quebec_735kv_ac_pf_map.html`/`.png` regenerated from the
-  current (circuit-corrected, 70%-compensated) 100%-demand network.
+  zero-p PV generator held at 1.0pu at each violating bus, read back its required Q,
+  `add_shunt_impedance.py`); tested on the 14 buses whose required Q never changes sign. On the
+  current (circuit-corrected, 70%-compensated) network, convergence holds (168/168) either way, but
+  a fixed reactor is sized once and absorbs that same amount every hour: sizing to each bus's
+  worst overvoltage hour drops buses >1.05pu from 29 to 1 but pushes buses <0.95pu from 3 to 23
+  (over-absorbing at every other, less-loaded hour); median sizing gives 3/58 and 12/58
+  respectively. No fixed size clears both bands — not yet adopted into the committed network. (An
+  earlier attempt on the pre-fix network, before circuit correction, did cost 3 hours of
+  convergence on already-marginal snapshots; the current network has enough margin that this no
+  longer happens.) `network/quebec_735kv_ac_pf_map.html`/`.png` regenerated from the current
+  (circuit-corrected, 70%-compensated) 100%-demand network.
 - **315kV network** (`elec_solved.nc`, 205 buses): 0/168. `run_pf.py` never copies the LOPF
   dispatch into `p_set` (which `n.pf()` reads), so on this network every generator, storage unit and
   link injects zero real power in that test — any earlier statement that its failure is

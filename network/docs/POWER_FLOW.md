@@ -62,7 +62,23 @@ Result: **168/168 at current (100%) demand**, max line loading 79.6% (0 lines >=
   about 1.13pu: 29 of 58 buses exceed 1.05pu at some point over the week (3 buses fall below
   0.95pu). Series compensation and circuit-count correction don't address this -- they raise
   transfer capacity under heavy load, not reactive charging at light load. A shunt reactor
-  (`ShuntImpedance`) at each affected bus is the standard fix; not yet applied.
+  (`ShuntImpedance`) at each affected bus is the standard fix, but a fixed reactor is sized once
+  and absorbs that same fixed amount every hour, since its susceptance `b` is a constant, not a
+  time series. Tried on the 14 buses whose required reactive support never changes sign (a
+  probe run with an ideal SVC at every overvoltage bus, `add_shunt_impedance.py`):
+
+  | Sizing | Buses >1.05pu | Buses <0.95pu |
+  |---|---|---|
+  | None | 29 | 3 |
+  | Worst-hour Q | 1 | 23 |
+  | Median Q | 3 | 12 |
+
+  Sizing each reactor to fully absorb its bus's worst overvoltage hour clears overvoltage almost
+  entirely, but at every other, less-loaded hour it absorbs more than that hour actually needs --
+  over-absorbing -- pulling voltage down further than necessary and pushing other buses below
+  0.95pu instead. Median sizing splits the difference; no fixed size clears both bands, since a
+  static device can't track hour-to-hour need the way a switched reactor or SVC could. Not yet
+  adopted into the committed network.
 - **Generator Q limits aren't enforced.** PV buses hold voltage with effectively unlimited
   reactive power -- some sending buses supply several GVAr at exactly 1.00pu, which a real
   generator's capability curve wouldn't allow.

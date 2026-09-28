@@ -1,8 +1,7 @@
 # Network versions
 
-Four network files, each built for a different purpose -- not versions of the same thing, and not
-interchangeable. The first three are distinct topologies (unreduced, 315kV, 735kV); the fourth is
-a demand-scaled sensitivity test on the third, not a new topology.
+Three network files, each built for a different purpose -- not versions of the same thing, and not
+interchangeable. They are distinct topologies: unreduced, 315kV, 735kV.
 
 **Note on `num_parallel`:** while some corridors are already circuit-corrected upstream
 (`fix_parallel_circuits_v2.py`), five 735kV corridors leaving major generating stations still had
@@ -60,14 +59,4 @@ got it there. Light-load overvoltage (29/58 buses exceed 1.05pu at some point) i
 Line parameters (r/x/b) on this network's 315/345kV and 735/765kV lines come from Hydro-Quebec's
 own line-characteristics table (`network/hq_line_characteristics_by_voltage.csv`,
 `apply_hq_line_characteristics.py`) -- see [DATA_SOURCES.md](DATA_SOURCES.md).
-
-## 4. 735kV backbone, 86% demand (`elec_735kv_scaled86.nc` -> `elec_735kv_scaled86_pf.nc`)
-
-Same 58 buses, 109 lines, and topology as `elec_735kv.nc` above -- every load and every real
-generator/storage unit's dispatch scaled down by a uniform 0.86 factor (loads and dispatch scaled
-together, so total demand still exactly equals total dispatch at every snapshot).
-
-**168/168 -- fully converged**, max line loading 70.0%. A lighter-load sensitivity check alongside
-the now-also-fully-converged `elec_735kv.nc` -- kept to show how loading and voltage spread
-respond to demand level, not because it's the only network that converges.
 

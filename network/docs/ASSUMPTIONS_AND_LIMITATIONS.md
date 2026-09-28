@@ -32,12 +32,14 @@ specific value chosen..
 - **Parallel-circuit count isn't reliably encoded in the raw data.** Real multi-circuit corridors
   show up as separate line records rather than a per-line circuit-count field, so any code path
   that trusted that field instead of counting real records would misstate corridor capacity.
-- **Local-to-backbone bus reassignment uses straight-line geographic distance**, not real grid
-  connectivity. This has repeatedly misassigned demand to the wrong backbone bus, sometimes
-  pooling load from remote, unconnected areas onto a nearby-looking bus -- a real data-quality
-  risk anywhere this reduction step is used, and a known contributor to unrealistic local stress
-  in downstream results. A more accurate (graph-based) alternative exists elsewhere in the
-  pipeline but hasn't been adopted for this step.
+- **`reduce_voltage_network.py` reassigns local buses to the backbone by straight-line geographic
+  distance, not real electrical connectivity.** Efficient, but this has repeatedly misassigned
+  demand to the wrong backbone bus, sometimes pooling load from remote, unconnected areas onto a
+  nearby-looking bus -- a known contributor to unrealistic local stress in downstream results.
+  `reduce_to_735kv.py` uses the more accurate graph shortest-path (real electrical connectivity)
+  method instead; it hasn't been adopted for the 315kV reduction step. Diagnosing any new 315kV
+  network issue should start by verifying the topology this step produced, before looking further
+  downstream.
 - **AC power flow does not converge on the 315kV reduced network at current real demand (0/168).**
   The divergence is localized to specific buses but not yet root-caused, and a known setup gap in
   `run_pf.py` (LOPF dispatch isn't injected as `p_set` on that network) makes its earlier AC PF

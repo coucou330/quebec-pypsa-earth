@@ -157,9 +157,8 @@ project without re-deriving everything from scratch.
   thermal overload the 70% compensation step introduced on its own (max loading 100.6% → 79.6%
   once the extra circuits' capacity was accounted for).
 - **735kV backbone** (`elec_735kv.nc`, 109 real lines): **168/168** at current real demand
-  (~30,200 MW mean, calibrated against real whole-January-2022 HQ data), also 168/168 at 86% of
-  that demand (`elec_735kv_scaled86.nc`, now a lighter-load sensitivity check rather than the only
-  converging case). Max line loading 79.6% at 100% demand, 0 lines >= 90%.
+  (~30,200 MW mean, calibrated against real whole-January-2022 HQ data). Max line loading 79.6%,
+  0 lines >= 90%.
 - **Light-load overvoltage is not mitigated**: long lines' own charging pushes voltage up to ~1.13pu
   at low demand; at 100% demand 29/58 buses exceed 1.05pu at some point (3/58 fall below 0.95pu).
   A `ShuntImpedance` per affected bus is the standard fix, sized from a probe run (a temporary

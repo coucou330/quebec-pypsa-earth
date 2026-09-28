@@ -13,13 +13,13 @@ levels of detail for different purposes.
 | Generators (real) | 68 | 65 | 24 |
 | Storage units | 18 | 18 | 10 |
 | Load served | -- | 0% shed | -- |
-| AC power flow | not attempted | 0/168 | 153/168 (**168/168 at 86% of demand**) |
+| AC power flow | not attempted | 0/168 | **168/168** |
 
-The 735kV backbone converges fully once demand is reduced to 86% of its current level, using
-line parameters from Hydro-Quebec's own table, 50% series compensation on the three identified weak
-corridors, and switched shunt reactors at 8 buses for light-load overvoltage -- see
-[POWER_FLOW.md](docs/POWER_FLOW.md). The 315kV network still fails; see the same file for where the
-divergence localizes.
+The 735kV backbone converges fully at current (100%) demand, using line parameters from
+Hydro-Quebec's own table, a circuit-count correction on five sending-end corridors, and 70% series
+compensation on fifteen lines -- see [POWER_FLOW.md](docs/POWER_FLOW.md). The 315kV network still
+fails; see the same file for where the divergence localizes. Light-load overvoltage on the 735kV
+network is still open.
 
 See [docs/NETWORKS.md](docs/NETWORKS.md) for what each network is for and how they relate.
 
@@ -33,12 +33,14 @@ elec_reduced.nc
       |  run_lopf_main_island.py  -- extract main island, real dispatch ceilings, solve LOPF
       v
 elec_solved.nc  (the main working network)
-      |  run_pf.py --method lpf   -- DC power flow check
-      |  reduce_to_735kv.py       -- reduce to 735/765kV backbone only
+      |  run_pf.py --method lpf                 -- DC power flow check
+      |  reduce_to_735kv.py                     -- reduce to 735/765kV backbone only
+      |  correct_sending_end_circuits.py        -- fix undercounted circuits on 5 corridors
+      |  apply_series_compensation.py           -- 70% compensation on 15 lines
       v
 elec_735kv.nc
-      |  run_pf.py --method pf    -- full nonlinear AC power flow (does not fully converge at
-      v                              current demand -- see POWER_FLOW.md)
+      |  run_pf.py --method pf    -- full nonlinear AC power flow (168/168 -- see POWER_FLOW.md)
+      v
 elec_735kv_pf.nc
       |  export_to_matpower.py    -- optional MATPOWER cross-check
 ```
@@ -61,5 +63,7 @@ PyPSA 0.30.x -- newer PyPSA releases have removed APIs these scripts depend on, 
 python network/run_lopf_main_island.py --network networks/elec_reduced.nc
 python network/run_pf.py --network networks/elec_solved.nc --method lpf
 python network/reduce_to_735kv.py --network networks/elec_solved.nc
+python network/correct_sending_end_circuits.py --network networks/elec_735kv.nc --in-place
+python network/apply_series_compensation.py --network networks/elec_735kv.nc --in-place
 python network/run_pf.py --network networks/elec_735kv.nc --method pf --pv-min-capacity 0 --pv-max-load-ratio 1
 ```

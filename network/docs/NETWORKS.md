@@ -4,6 +4,12 @@ Four network files, each built for a different purpose -- not versions of the sa
 interchangeable. The first three are distinct topologies (unreduced, 315kV, 735kV); the fourth is
 a demand-scaled sensitivity test on the third, not a new topology.
 
+**Note on `num_parallel`:** while some corridors are already circuit-corrected upstream
+(`fix_parallel_circuits_v2.py`), five 735kV corridors leaving major generating stations still had
+only 1-2 of their real 3 parallel circuits modeled. `correct_sending_end_circuits.py` fixes this
+on the 735kV network below -- see [POWER_FLOW.md](POWER_FLOW.md). Not yet applied to the 315kV
+network.
+
 ## 1. Unreduced (`elec_full.nc`)
 
 The complete raw topology from PyPSA-Earth's OSM extraction, covering every voltage level, all of
@@ -47,8 +53,9 @@ way. Note that this network is not rerun with LOPF so that dispatch is still acc
 
 Purpose-built for AC power flow tractability: small and heavily meshed, so it was expected to
 converge more readily than the 315kV network, making it easier to diagnose AC PF divergence. At
-current (100%) demand it does not fully converge (**153/168**) -- see [POWER_FLOW.md](POWER_FLOW.md)
-for the investigation.
+current (100%) demand it fully converges (**168/168**), max line loading 79.6% -- see
+[POWER_FLOW.md](POWER_FLOW.md) for the fixes (circuit-count correction, series compensation) that
+got it there. Light-load overvoltage (29/58 buses exceed 1.05pu at some point) is still open.
 
 Line parameters (r/x/b) on this network's 315/345kV and 735/765kV lines come from Hydro-Quebec's
 own line-characteristics table (`network/hq_line_characteristics_by_voltage.csv`,
@@ -58,11 +65,9 @@ own line-characteristics table (`network/hq_line_characteristics_by_voltage.csv`
 
 Same 58 buses, 109 lines, and topology as `elec_735kv.nc` above -- every load and every real
 generator/storage unit's dispatch scaled down by a uniform 0.86 factor (loads and dispatch scaled
-together, so total demand still exactly equals total dispatch at every snapshot). 
+together, so total demand still exactly equals total dispatch at every snapshot).
 
-**168/168 -- fully converged.** This is the only network in the pipeline that reaches full AC PF
-convergence using entirely real topology and real circuit data (no fabricated lines, series
-compensation included). It confirms the current 735kV network's AC PF failure at 100% demand is
-demand-level-sensitive -- see [POWER_FLOW.md](POWER_FLOW.md) for the mechanism (voltage collapse
-at three specific long-line-fed buses, since fixed by series compensation).
+**168/168 -- fully converged**, max line loading 70.0%. A lighter-load sensitivity check alongside
+the now-also-fully-converged `elec_735kv.nc` -- kept to show how loading and voltage spread
+respond to demand level, not because it's the only network that converges.
 

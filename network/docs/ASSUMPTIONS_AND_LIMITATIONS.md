@@ -14,8 +14,8 @@ specific value chosen..
 | Dispatch ceiling headroom | x1.10 on real-data-derived ratios | `run_lopf_main_island.py` | Applied to ror, OCGT, and hydro storage ceilings (all derived from real 2022 hourly dispatch ratios) so the model isn't forced to never exceed the exact historical dispatch level. Not applied to wind/solar, which use weather-derived capacity factors, not dispatch history. |
 | Link 4349 (329-3975 DC tie) capacity | x3 | `run_lopf_main_island.py` | Undersized at its source value, forcing shedding upstream despite real generation capacity existing to cover it. Insensitive to going further (x6 gave the same result as x3). |
 | Line reactance at voltages other than 315/345/735/765kV | PyPSA-Earth's generic default type (German textbook, 50Hz, not Quebec-specific) | `elec_full.nc`'s `type` field, unmodified | Only the two voltage tiers the reduced networks keep are overridden with Hydro-Quebec's table (`apply_hq_line_characteristics.py`, 345 treated as 315-tier and 765 as 735-tier); nothing else is touched, so lines at other voltages keep the generic default. Doesn't affect the reduced/solved networks (they only keep >=315kV lines, and the only voltages left are 315/345/735/765) -- only the unreduced reference map. The HQ table also lists 69/120/161/230kV rows, transcribed in `hq_line_characteristics_by_voltage.csv` but not applied to any line -- see [DATA_SOURCES.md](DATA_SOURCES.md). |
-| Series compensation degree | 50% | `apply_series_compensation.py` | Applied to the ten longest lines feeding the three buses (308, 1291, 312) diagnosed as the network's only AC PF voltage-collapse points. Real EHV series compensation typically runs 30-70% on the longest corridors; 50% is a mid-range planning value, not a measured Hydro-Quebec figure for these specific lines. Real series compensation also risks sub-synchronous resonance at high compensation degrees -- not modeled here (steady-state power flow only). |
-| Switched shunt reactor ratings | 900-2,500 MVAr per bus, at 8 buses | `add_shunt_reactors.py` | Fixes light-load overvoltage (up to 1.13pu, the Ferranti effect on long lines) at buses 469, 310, 3319, 345, 312, 308, 150, 2944. Ratings were tuned empirically against this project's own AC PF runs (increased until voltage cleared 1.05pu or further increases stopped helping/started hurting convergence), not derived from a target-voltage solve or a measured HQ figure. Switched on only when total system demand is below that network's own mean (bus 469 excepted -- runs permanently on, since its voltage barely correlates with system demand) -- a fixed, always-on reactor at 308/312 would fight the series-compensation collapse fix during the heavy-load hours it's needed. |
+| Series compensation degree | 70% | `apply_series_compensation.py` | Applied to 15 lines: the ten longest lines feeding the three buses (308, 1291, 312) diagnosed as AC PF voltage-collapse points, plus five lines (162, 156, 1938, 1049, 1448) carrying the network's highest transmission angles. Real EHV series compensation typically runs 30-70% on the longest corridors; 70% is toward the high end, chosen because it's what full-demand AC PF convergence needs -- not a measured Hydro-Quebec figure for these specific lines. Real series compensation also risks sub-synchronous resonance at high compensation degrees -- not modeled here (steady-state power flow only). |
+| Circuit count on 5 sending-end corridors | 3 total circuits | `correct_sending_end_circuits.py` | 114-1291, 114-148, 340-457, 66-457 and 651-25 were modeled with only 1-2 circuits despite leaving major generating stations, where Hydro-Quebec builds 3-circuit corridors. Corrected to 3 total, r/x/b recomputed from Hydro-Quebec's per-km rates accordingly. |
 
 ## Generic assumptions (AC power flow only)
 
@@ -38,9 +38,8 @@ specific value chosen..
   risk anywhere this reduction step is used, and a known contributor to unrealistic local stress
   in downstream results. A more accurate (graph-based) alternative exists elsewhere in the
   pipeline but hasn't been adopted for this step.
-- **AC power flow does not converge on either reduced network at current real demand.** The 735kV
-  network's failure is diagnosed (voltage collapse at three specific buses, fed only by long
-  high-reactance lines with no local generation -- partly fixed with series compensation, see
-  [POWER_FLOW.md](POWER_FLOW.md)); the 315kV network still fails (0/168), with the divergence
-  localized to specific buses but not yet root-caused, and a known setup gap in `run_pf.py` (LOPF
-  dispatch isn't injected as `p_set` on that network) that makes its earlier AC PF results unreliable.
+- **AC power flow does not converge on the 315kV reduced network at current real demand (0/168).**
+  The divergence is localized to specific buses but not yet root-caused, and a known setup gap in
+  `run_pf.py` (LOPF dispatch isn't injected as `p_set` on that network) makes its earlier AC PF
+  results unreliable. The 735kV network now converges fully (168/168) -- see
+  [POWER_FLOW.md](POWER_FLOW.md) for the fixes -- but light-load overvoltage on it is still open.

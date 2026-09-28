@@ -8,27 +8,32 @@ fix for a line whose length alone makes its reactance the limiting factor on
 both power transfer and voltage drop. Hydro-Quebec's own 735kV network is
 known for exactly this kind of compensation on its longest corridors.
 
-Targets the 10 lines identified as feeding the three buses (308, 1291, 312)
-found to be the sole points of AC PF voltage collapse on the
-line-reactance-corrected 735kV network (network/docs/POWER_FLOW.md) -- all
-are 250-500km lines with either no local generation or, for 312, real but
-non-voltage-controlling generation. The short (95.8km) 312-310 line is
-deliberately excluded: it isn't part of the long-line problem this is
-fixing.
+Targets 15 lines across two groups:
+- 10 lines feeding buses 308, 1291 and 312, the points of AC PF voltage
+  collapse on the line-reactance-corrected 735kV network (see
+  network/docs/POWER_FLOW.md) -- 250-500km lines with either no local
+  generation or, for 312, real but non-voltage-controlling generation.
+- 5 lines (162, 156, 1938, 1049, 1448) carrying the highest transmission
+  angles on the network, identified from a DC power-flow angle check
+  (angle_diff = v_ang[bus0] - v_ang[bus1] across every line); left
+  uncompensated they are the tightest remaining constraint on full-demand
+  convergence.
+The short (95.8km) 312-310 line is deliberately excluded: it isn't part of
+the long-line problem this is fixing.
 
-Applied on top of apply_hq_line_characteristics.py (after it has already
-set the line's real x -- this just scales it down further), and before
-reduce_voltage_network.py, since these are
-original OSM line ids that pass through every later reduction stage
-unchanged.
+Applied on top of apply_hq_line_characteristics.py and
+correct_sending_end_circuits.py (after both have set the line's real r/x/b
+-- this just scales x down further), and before reduce_voltage_network.py,
+since these are original OSM line ids that pass through every later
+reduction stage unchanged.
 
-COMPENSATION_FRACTION (0.50) is a generic, undocumented-in-real-data
+COMPENSATION_FRACTION (0.70) is a generic, undocumented-in-real-data
 assumption -- typical real-world EHV series compensation runs roughly
-30-70% on the longest corridors; 50% is a reasonable mid-range planning
-value, not a measured Hydro-Quebec figure for these specific lines. Real
+30-70% on the longest corridors; 70% is toward the high end of that range,
+chosen because it is what full-demand AC PF convergence on this network
+needs. Not a measured Hydro-Quebec figure for these specific lines. Real
 series compensation also risks sub-synchronous resonance at high
-compensation degrees -- not modeled here (steady-state power flow only),
-one reason compensation isn't pushed higher.
+compensation degrees -- not modeled here (steady-state power flow only).
 
 Usage
 -----
@@ -38,7 +43,7 @@ import argparse
 
 import pypsa
 
-COMPENSATION_FRACTION = 0.50
+COMPENSATION_FRACTION = 0.70
 
 TARGET_LINES = {
     "2408": "114-1291 (500.6km, sole supply path to bus 1291)",
@@ -51,6 +56,11 @@ TARGET_LINES = {
     "163": "457-312 circuit 1 (344.7km)",
     "1655": "457-312 circuit 2 (344.6km)",
     "2386": "457-312 circuit 3 (378.2km)",
+    "162": "340-457 (456.6km, highest transmission angle on the network)",
+    "156": "66-457 circuit 1 (432.7km, high transmission angle)",
+    "1938": "66-457 circuit 2 (432.7km, high transmission angle)",
+    "1049": "114-148 circuit 1 (563.4km, high transmission angle)",
+    "1448": "114-148 circuit 2 (567.7km, high transmission angle)",
 }
 
 

@@ -5,24 +5,21 @@
 Solved on the main 315kV working network's largest island (205 buses) over a one-week window
 (2022-01-01 to 2022-01-07, 168 hourly snapshots).
 
-- **0% load shed.** Every hour's demand is fully served from the modeled fleet.
+- **0% load shed.** Every hour's demand is fully served from the modeled generators.
 - Mean demand ~30,200 MW, calibrated against real whole-January-2022 system demand
   (`historique-demande-electricite-quebec.csv`).
 - Max line loading ~78.5%, **0 lines >= 90% loaded** -- down from ~96% (1 line >= 90%) before the
   line reactance correction and series compensation below; security margin (`s_max_pu`) is still
   relaxed from PyPSA-Earth's default 0.7 to 1.0, see
   [ASSUMPTIONS_AND_LIMITATIONS.md](ASSUMPTIONS_AND_LIMITATIONS.md) for why that relaxation exists.
-  No congestion close-up map is generated any more (`visualize_congestion_zoom.py` finds nothing
-  to zoom into, by design, when no line clears the 90% threshold).
 
 ## DC power flow
 
-Run via `run_pf.py --method lpf` as a linear sanity check against the LOPF dispatch. Has been
-clean throughout this project on every network tried -- no convergence issues at any stage.
+Run via `run_pf.py --method lpf` as a linear sanity check against the LOPF dispatch. It is expected to converge no matter what as its a purely linear power balance equation.
 
 ## AC power flow (full nonlinear Newton-Raphson)
 
-Line parameters (r/x/b) come from Hydro-Quebec's own line-characteristics table -- see
+Line parameters (r/x/b) come from Hydro-Quebec line-characteristics table -- see
 [DATA_SOURCES.md](DATA_SOURCES.md). Current state:
 
 | Network | Convergence at current demand |
@@ -77,11 +74,11 @@ Result: **168/168 at current (100%) demand**, max line loading 79.6% (0 lines >=
   entirely, but at every other, less-loaded hour it absorbs more than that hour actually needs --
   over-absorbing -- pulling voltage down further than necessary and pushing other buses below
   0.95pu instead. Median sizing splits the difference; no fixed size clears both bands, since a
-  static device can't track hour-to-hour need the way a switched reactor or SVC could. Not yet
+  static device can't track hour-to-hour need the way a switched reactor or SVC could. 
+  
+  Not yet
   adopted into the committed network.
-- **Generator Q limits aren't enforced.** PV buses hold voltage with effectively unlimited
-  reactive power -- some sending buses supply several GVAr at exactly 1.00pu, which a real
-  generator's capability curve wouldn't allow.
+- **Generator Q limits aren't enforced.** PV buses hold voltage with no consideration of reactive capability of generator. Reactive capability 'q_limit' is not considered in PyPYSA's power flow solver. Implementing this limit may impact acpf solution.
 
 ### The 315kV network
 
@@ -91,4 +88,4 @@ real power in that test and the slack carries the whole ~30 GW load. With the di
 still fails (0/168), and the divergence localizes to two areas: a radial spur of buses 240, 1548,
 1762, 1772, 2207, 3719, 1693, 3836 and 2812 (with it removed, the lowest-demand hour converges),
 and, at higher demand, a wider set of buses that includes 308 and 469 -- also problem buses on the
-735kV network. Root cause not yet found.
+735kV network. Similar fix to the 735kV can be applied to improve results. Further work is required.

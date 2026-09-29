@@ -31,6 +31,15 @@ bus, in MATPOWER's convention) -- real/storage generators keep their real Pg
 but lose their solved Q; PyPSA's zero-real-power reactive-compensation
 generators are excluded entirely rather than exported as dead (0, 0) rows.
 
+Bus type (MATPOWER's BUS_TYPE: PQ=1, PV=2, slack=3) comes from
+Generator.control, but a freshly loaded/solved network has every generator
+at the PyPSA default ('PQ') -- that classification only exists once
+run_pf.py's prepare_for_ac_pf() has run on it. This script runs the same
+classification itself before exporting (--pv-min-capacity /
+--pv-max-load-ratio, same heuristic and defaults as run_pf.py), so the
+MATPOWER case reflects the same PV/PQ/slack split PyPSA's own AC PF uses,
+not an all-PQ-except-slack network.
+
 Usage
 -----
     python network/export_to_matpower.py --network networks/elec_solved.nc
@@ -46,6 +55,8 @@ import pypsa
 
 NETWORK_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(NETWORK_DIR)
+sys.path.insert(0, NETWORK_DIR)
+import run_pf  # noqa: E402 -- same PV/PQ/slack classification as the live AC PF run
 
 DEFAULT_NETWORK = os.path.join(BASE_DIR, "networks", "elec_solved.nc")
 # Writes directly to MATPOWER's data folder, where it's actually run from.
@@ -63,6 +74,22 @@ V_MAG_MIN, V_MAG_MAX = 0.95, 1.05
 GENCOST_QUADRATIC_EPS = 1e-4
 
 
+def dispatch_p(t_frame_p, t_frame_p_set, name, snap) -> float:
+    """Real dispatch at `snap`, preferring `p_set` over `p` when both exist.
+
+    Which field actually holds real dispatch differs by network stage:
+    elec_solved.nc (fresh off LOPF) stores it in the standard `.p` output;
+    elec_735kv.nc (post reduce_to_735kv.py) stores the preserved dispatch in
+    `.p_set` instead, leaving `.p` empty. Checking p_set first (and falling
+    back to p) handles either network without needing to know which stage
+    it's at."""
+    if name in t_frame_p_set.columns:
+        return float(t_frame_p_set.at[snap, name])
+    if name in t_frame_p.columns:
+        return float(t_frame_p.at[snap, name])
+    return 0.0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--network", default=DEFAULT_NETWORK)
@@ -71,6 +98,8 @@ def main():
                          help="Index into n.snapshots to export. Default: the worst-loaded hour.")
     parser.add_argument("--base-mva", type=float, default=BASE_MVA)
     parser.add_argument("--case-name", default="quebec_main_island")
+    parser.add_argument("--pv-min-capacity", type=float, default=run_pf.PV_MIN_CAPACITY_MW)
+    parser.add_argument("--pv-max-load-ratio", type=float, default=run_pf.PV_MAX_LOAD_RATIO)
     args = parser.parse_args()
 
     print(f"Loading: {args.network}")
@@ -80,6 +109,15 @@ def main():
     # generic X/R=30 assumption, same as run_pf.py's AC PF preparation.
     n.transformers["r"] = n.transformers["x"] / 30.0
     n.calculate_dependent_values()
+
+    # Same PV/PQ/slack bus classification run_pf.py uses for AC PF, so the
+    # exported BUS_TYPE matches PyPSA's own setup rather than defaulting
+    # every non-slack bus to PQ. reactive_compensation_ratio=0 -- this
+    # script derives Qmax/Qmin itself and excludes those placeholder
+    # generators anyway (see docstring).
+    run_pf.prepare_for_ac_pf(n, pv_min_capacity=args.pv_min_capacity,
+                              pv_max_load_ratio=args.pv_max_load_ratio,
+                              reactive_compensation_ratio=0.0)
 
     # Real dispatch (p_set is what n.pf() reads; use p directly here since
     # we're deriving Pg/Pd ourselves, not calling n.pf()).
@@ -164,7 +202,7 @@ def main():
     gen_rows = []
     gencost_rows = []
     for g, row in gens.iterrows():
-        p = float(n.generators_t.p.at[snap, g]) if g in n.generators_t.p.columns else 0.0
+        p = dispatch_p(n.generators_t.p, n.generators_t.p_set, g, snap)
         qmax = row.p_nom * np.tan(np.arccos(GEN_PF_ASSUMED))
         gen_rows.append([
             bus_id[row.bus], p, 0.0, qmax, -qmax, 1.0, row.p_nom if row.p_nom > 0 else args.base_mva,
@@ -174,7 +212,7 @@ def main():
         gencost_rows.append([2, 0, 0, 3, GENCOST_QUADRATIC_EPS, mc, 0.0])
 
     for s, row in sus.iterrows():
-        p = float(n.storage_units_t.p.at[snap, s]) if s in n.storage_units_t.p.columns else 0.0
+        p = dispatch_p(n.storage_units_t.p, n.storage_units_t.p_set, s, snap)
         qmax = row.p_nom * np.tan(np.arccos(GEN_PF_ASSUMED))
         gen_rows.append([
             bus_id[row.bus], max(p, 0.0), 0.0, qmax, -qmax, 1.0, row.p_nom,
@@ -230,6 +268,13 @@ def main():
 
         f.write("%% generator cost data\n%\t2\tstartup\tshutdown\tn\tc(n-1)\t...\tc0\n")
         f.write("mpc.gencost = [\n" + fmt_matrix(gencost_rows) + ";\n];\n")
+
+    # MATPOWER's case format has no bus-name field, so the mpc bus_id <->
+    # original PyPSA bus name mapping would otherwise be lost on export --
+    # write it alongside the .m file for tracing results back to real buses.
+    busmap_path = os.path.splitext(args.output)[0] + "_busmap.csv"
+    pd.Series(bus_id, name="mpc_bus_id").rename_axis("pypsa_bus").reset_index().to_csv(busmap_path, index=False)
+    print(f"  Bus ID map -> {busmap_path}")
 
     print(f"\nWritten -> {args.output}")
     print(f"  buses: {len(bus_rows)}, generators: {len(gen_rows)}, branches: {len(branch_rows)}")

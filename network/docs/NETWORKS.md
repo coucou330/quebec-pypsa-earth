@@ -22,7 +22,9 @@ Since we are only interested in the Quebec network, the
 ## 2. 315kV reduced (`elec_reduced.nc` -> `elec_solved.nc`)
 
 210 buses, 278 lines, 22 transformers, 6 links, 205 buses after largest-island extraction, 276
-lines, 65 real generators (plus per-bus load-shedding placeholders), 18 storage units, 647 loads.
+lines, 72 real generators (plus per-bus load-shedding placeholders), 22 storage units, 647 loads.
+Generation capacity is corrected against HQ's official generating-stations list -- see
+[GENERATORS.md](GENERATORS.md).
 
 Built by `reduce_voltage_network.py`. It keeps every bus at 315kV or above, and folds every lower-voltage local bus onto its nearest bus -- no load, generator, or storage unit is dropped, only reassigned.
 `run_lopf_main_island.py`extracts the single largest connected island and solves LOPF on it.

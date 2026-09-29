@@ -8,9 +8,11 @@ Solved on the main 315kV working network's largest island (205 buses) over a one
 - **0% load shed.** Every hour's demand is fully served from the modeled generators.
 - Mean demand ~30,200 MW, calibrated against real whole-January-2022 system demand
   (`historique-demande-electricite-quebec.csv`).
-- Max line loading ~78.5%, **0 lines >= 90% loaded** -- down from ~96% (1 line >= 90%) before the
-  line reactance correction and series compensation below; security margin (`s_max_pu`) is still
-  relaxed from PyPSA-Earth's default 0.7 to 1.0, see
+- Max line loading ~74.5%, **0 lines >= 90% loaded** -- down from ~96% (1 line >= 90%) before the
+  line reactance correction and series compensation below, and further down from ~88.5% after a
+  generation-capacity correction against HQ's official generating-stations list (see
+  [GENERATORS.md](GENERATORS.md)) added real transmission headroom; security margin (`s_max_pu`) is
+  still relaxed from PyPSA-Earth's default 0.7 to 1.0, see
   [ASSUMPTIONS_AND_LIMITATIONS.md](ASSUMPTIONS_AND_LIMITATIONS.md) for why that relaxation exists.
 
 ## DC power flow

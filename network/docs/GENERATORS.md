@@ -5,12 +5,12 @@ units after `reduce_voltage_network.py`'s reassignment (none dropped); capacitie
 
 | Carrier | Count | Capacity (MW) | Source |
 |---|---|---|---|
-| Run-of-river hydro (`ror`) | 25 | 12,675 | Real HQ hydro station list + 2022 hourly `Hydraulique` dispatch |
-| Hydro storage (`StorageUnit`, `hydro`) | 18 | 27,936 | Same station list; reservoir plants modeled with storage |
-| Onshore wind (`onwind`) | 35 | 3,412 | Real HQ wind farm list; dispatched by weather-derived capacity factor |
-| Solar (`solar`) | 3 | 12 | Real facility list; dispatched by weather-derived capacity factor |
+| Run-of-river hydro (`ror`) | 35 | 13,570 | Real HQ hydro station list + 2022 hourly `Hydraulique` dispatch |
+| Hydro storage (`StorageUnit`, `hydro`) | 22 | 28,583 | Same station list; reservoir plants modeled with storage |
+| Onshore wind (`onwind`) | 33 | 3,933 | Real HQ wind farm list (44 IPP-operated farms, official total); dispatched by weather-derived capacity factor |
+| Solar (`solar`) | 3 | 10 | Real facility list (2 official stations: Gabrielle-Bodis 8 MW, Robert-A.-Boyd 2 MW); dispatched by weather-derived capacity factor |
 | OCGT (gas) | 1 | 411 | Real 2022 hourly `Thermique` dispatch |
-| Load shedding | 191 | 39,260 (sized to local peak) | Synthetic VOLL placeholder, $10,000/MWh, one per load bus |
+| Load shedding | 189 | (sized to local peak) | Synthetic VOLL placeholder, $10,000/MWh, one per load bus |
 | Slack placeholder (`AC`) | 1 | 7,722 | Zero-dispatch generator so largest hydro unit is assigned as slack, Pypsa do not let storage unit be assigned slack bus |
 
 Load-shedding generators are a modeling device, not real capacity: they exist so LOPF can shed
@@ -19,6 +19,25 @@ report unserved load (currently 0% on the solved network).
 
 Churchill Falls' real 5,428 MW is included in the hydro storage total above (`465
 hydro-Churchill-Falls`, at bus `465-735kv`, added by `add_churchill_falls_tie.py`).
+
+**Hydro capacity correction:** the original attach was missing 20 real HQ stations (~1,627 MW)
+that don't name-match between `hq_major_facilities_2023.csv` and `hq_hydro_stations_official.csv`
+-- either absent from the major-facilities list entirely, or present there with no coordinates.
+14 of them (1,542 MW, including Eastmain-1 at 480 MW) were added manually, each attached to the
+bus of an already-modeled station sharing the same river (e.g. Eastmain-1 -> Bernard-Landry's bus,
+both on the Eastmain river) -- no plant-specific inflow data exists for them, so run-of-river units
+are left at the default `p_max_pu=1.0` and reservoir units at zero inflow (matching
+`attach_real_generators.py`'s own no-inflow fallback). The remaining 6 (~160 MW: Chute-Hemmings,
+Drummondville, Lac-Robertson, Mitis-1, Mitis-2, Sept-Chutes) have no modeled station on their
+river to anchor to and were left out. Hydro capacity now totals 42,153 MW against HQ's official
+42,313 MW (36,885 MW HQ-owned stations + 5,428 MW Churchill Falls, excluding 706 MW of
+IPP-operated hydro that isn't modeled at all).
+
+**Wind and solar capacity correction:** both were scaled uniformly (per-generator, within each
+carrier) to match HQ's official installed totals -- wind from 3,721.8 MW (39 units, pre-island-
+extraction) to 3,933 MW (44 IPP-operated farms), solar from 12.3 MW (3 units) to 10.0 MW (2
+stations). Station counts weren't reconciled 1:1 against the official lists, only the aggregate
+capacity.
 
 ## Dispatch ceilings
 

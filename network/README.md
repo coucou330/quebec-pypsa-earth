@@ -10,8 +10,8 @@ levels of detail for different purposes.
 |---|---|---|---|
 | Buses | 4,013 | 205 | 58 |
 | Lines | 4,546 | 276 | 109 |
-| Generators (real) | 68 | 65 | 24 |
-| Storage units | 18 | 18 | 10 |
+| Generators (real) | 68 | 72 | 24 |
+| Storage units | 18 | 22 | 10 |
 | Load served | -- | 0% shed | -- |
 | AC power flow | not attempted | 0/168 | **168/168** |
 
@@ -20,6 +20,10 @@ Hydro-Quebec's own table, a circuit-count correction on five sending-end corrido
 compensation on fifteen lines -- see [POWER_FLOW.md](docs/POWER_FLOW.md). The 315kV network still
 fails; see the same file for where the divergence localizes. Light-load overvoltage on the 735kV
 network is still open.
+
+The 315kV column above reflects a generation-capacity correction against HQ's official generating-
+stations list (see [docs/GENERATORS.md](docs/GENERATORS.md)) -- the 735kV backbone hasn't been
+rebuilt from that corrected network yet, so its figures predate the correction.
 
 See [docs/NETWORKS.md](docs/NETWORKS.md) for what each network is for and how they relate.
 
@@ -48,6 +52,7 @@ elec_735kv_pf.nc
 ## Documentation
 
 - [docs/NETWORKS.md](docs/NETWORKS.md) -- the three network tiers, what each is for
+- [docs/COMPONENTS.md](docs/COMPONENTS.md) -- how each PyPSA component type is modeled
 - [docs/GENERATORS.md](docs/GENERATORS.md) -- generation and storage fleet, real vs. synthetic
 - [docs/POWER_FLOW.md](docs/POWER_FLOW.md) -- LOPF, DC PF, and AC PF results
 - [docs/ASSUMPTIONS_AND_LIMITATIONS.md](docs/ASSUMPTIONS_AND_LIMITATIONS.md) -- every generic

@@ -25,8 +25,6 @@ specific value chosen..
 | Generator power factor | 0.9 | `run_pf.py` | Generic reactive-capability assumption, tied to nameplate capacity rather than real-time dispatch (a synchronous machine can supply close to full reactive capability near zero real output). |
 | Transformer X/R ratio | 30 | `run_pf.py` | Real transformer resistance isn't in the source data; a generic value for large power transformers. |
 | PV bus eligibility threshold | Topology-dependent -- widened to "every real generator bus" on the 58-bus 735kV network; a stricter `p_nom >= 100 MW, load < 10% of local generation` threshold on the 208-bus 315kV network | `run_pf.py` (`--pv-min-capacity`, `--pv-max-load-ratio`) | PV buses hold voltage with effectively unlimited reactive power. That's stabilizing on a small, heavily meshed network but destabilizing with many PV buses on a larger network with long, weak radial corridors -- the two networks needed opposite settings. |
-| Reactive compensation | 70% of each bus's own reactive demand, every snapshot | `run_pf.py` | A zero-real-power PQ generator per bus, sized to track local reactive demand at each hour rather than a fixed peak-sized shunt. Improves but does not fully close the AC PF convergence gap on its own; see [POWER_FLOW.md](POWER_FLOW.md). |
-
 ## Known data limitations
 
 - **Parallel-circuit count isn't reliably encoded in the raw data.** Real multi-circuit corridors

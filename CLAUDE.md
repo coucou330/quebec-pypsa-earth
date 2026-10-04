@@ -106,10 +106,8 @@ project without re-deriving everything from scratch.
    placeholder generators on storage-only buses for PV eligibility, classifies PV/PQ buses by a
    size/load-ratio heuristic (tunable via `--pv-min-capacity` / `--pv-max-load-ratio` — the right
    threshold is topology-dependent, see `POWER_FLOW.md` for why 735kV and 315kV need different
-   values), adds demand-following reactive compensation (one zero-P generator per bus,
-   `--reactive-compensation-ratio`, default 0.70), and **restores the slack generator after the
-   PQ/PV reset** (a real bug existed here until fixed — was silently picking an arbitrary fallback
-   slack, sometimes a `load_shedding` placeholder, for every AC PF run before the fix).
+   values), and **restores the slack generator after the PQ/PV reset** (otherwise PyPSA picks an
+   arbitrary fallback slack, sometimes a `load_shedding` placeholder).
 5. **`reduce_to_735kv.py`** — reduces the solved network to just its 735/765kV backbone (unified
    as one tier), for a smaller network suitable for contingency analysis. Aggregates all
    loads/generators/storage from non-backbone buses onto the nearest backbone bus via graph
@@ -152,27 +150,16 @@ project without re-deriving everything from scratch.
   `COMPENSATION_FRACTION = 0.70`, a generic planning-level assumption not a measured HQ figure) —
   matches real Hydro-Québec practice (3-circuit sending-end corridors, series compensation on long
   corridors); treats the actual cause (undercounted circuits, line reactance) rather than adding a
-  device to work around it. 100%-demand convergence 84/168 → 155/168 (70% comp alone, num_parallel
-  still wrong) → **168/168** once circuit count was corrected too. Circuit correction also fixed a
-  thermal overload the 70% compensation step introduced on its own (max loading 100.6% → 79.6%
-  once the extra circuits' capacity was accounted for).
-- **735kV backbone** (`elec_735kv.nc`, 109 real lines): **168/168** at current real demand
-  (~30,200 MW mean, calibrated against real whole-January-2022 HQ data). Max line loading 79.6%,
-  0 lines >= 90%.
-- **Light-load overvoltage is not mitigated**: long lines' own charging pushes voltage up to ~1.13pu
-  at low demand; at 100% demand 29/58 buses exceed 1.05pu at some point (3/58 fall below 0.95pu).
-  A `ShuntImpedance` per affected bus is the standard fix, sized from a probe run (a temporary
-  zero-p PV generator held at 1.0pu at each violating bus, read back its required Q,
-  `add_shunt_impedance.py`); tested on the 14 buses whose required Q never changes sign. On the
-  current (circuit-corrected, 70%-compensated) network, convergence holds (168/168) either way, but
-  a fixed reactor is sized once and absorbs that same amount every hour: sizing to each bus's
-  worst overvoltage hour drops buses >1.05pu from 29 to 1 but pushes buses <0.95pu from 3 to 23
-  (over-absorbing at every other, less-loaded hour); median sizing gives 3/58 and 12/58
-  respectively. No fixed size clears both bands — not yet adopted into the committed network. (An
-  earlier attempt on the pre-fix network, before circuit correction, did cost 3 hours of
-  convergence on already-marginal snapshots; the current network has enough margin that this no
-  longer happens.) `network/quebec_735kv_ac_pf_map.html`/`.png` regenerated from the current
-  (circuit-corrected, 70%-compensated) 100%-demand network.
+  device to work around it.
+- **735kV backbone** (`elec_735kv.nc`, 109 real lines, series compensation only — no shunt or
+  generator-based reactive support): **168/168** at current real demand (~30,200 MW mean,
+  calibrated against real whole-January-2022 HQ data). Max line loading 86.2%, 0 lines >= 90%.
+  Voltage 0.901–1.123pu; 17/58 buses fall below 0.95pu and 21/58 exceed 1.05pu at some hour.
+  `elec_735kv_scaled86.nc` (86% demand): 168/168, 73.4%, 3/58 under, 6/58 over.
+- **Voltage band not met**: a `ShuntImpedance` per affected bus is the standard fix
+  (`add_shunt_impedance.py`), but `b` is static — a reactor sized for the worst overvoltage hour
+  over-absorbs at other hours and pushes buses below 0.95pu. Not adopted into the committed network.
+  `network/quebec_735kv_ac_pf_map.html`/`.png` reflect the current 100%-demand network.
 - **315kV network** (`elec_solved.nc`, 205 buses): 0/168. `run_pf.py` never copies the LOPF
   dispatch into `p_set` (which `n.pf()` reads), so on this network every generator, storage unit and
   link injects zero real power in that test — any earlier statement that its failure is

@@ -28,8 +28,7 @@ generator Q-capability curves), but is a mandatory MATPOWER column. Uses a
 generic +-tan(acos(0.85)) * Pmax assumption -- not measured. Qg itself is
 always exported as 0 (a fixed injection for any generator not on a PV/slack
 bus, in MATPOWER's convention) -- real/storage generators keep their real Pg
-but lose their solved Q; PyPSA's zero-real-power reactive-compensation
-generators are excluded entirely rather than exported as dead (0, 0) rows.
+but lose their solved Q.
 
 Bus type (MATPOWER's BUS_TYPE: PQ=1, PV=2, slack=3) comes from
 Generator.control, but a freshly loaded/solved network has every generator
@@ -112,12 +111,9 @@ def main():
 
     # Same PV/PQ/slack bus classification run_pf.py uses for AC PF, so the
     # exported BUS_TYPE matches PyPSA's own setup rather than defaulting
-    # every non-slack bus to PQ. reactive_compensation_ratio=0 -- this
-    # script derives Qmax/Qmin itself and excludes those placeholder
-    # generators anyway (see docstring).
+    # every non-slack bus to PQ.
     run_pf.prepare_for_ac_pf(n, pv_min_capacity=args.pv_min_capacity,
-                              pv_max_load_ratio=args.pv_max_load_ratio,
-                              reactive_compensation_ratio=0.0)
+                              pv_max_load_ratio=args.pv_max_load_ratio)
 
     # Real dispatch (p_set is what n.pf() reads; use p directly here since
     # we're deriving Pg/Pd ourselves, not calling n.pf()).
@@ -154,13 +150,10 @@ def main():
 
     lines = n.lines[n.lines.bus0.isin(main_ac) & n.lines.bus1.isin(main_ac)]
     trafos = n.transformers[n.transformers.bus0.isin(main_ac) & n.transformers.bus1.isin(main_ac)]
-    # Exclude load-shedding placeholders (not real capacity) and reactive-
-    # compensation placeholders (p=0 always, and Qg is exported as 0 below --
-    # see docstring -- so they'd inject nothing anyway; excluding them makes
-    # that explicit instead of leaving dead rows in the case).
+    # Exclude load-shedding placeholders (not real capacity).
     gens = n.generators[
         (n.generators.bus.isin(main_ac))
-        & (~n.generators.carrier.isin(["load_shedding", "reactive_compensation"]))
+        & (n.generators.carrier != "load_shedding")
     ]
     sus = n.storage_units[n.storage_units.bus.isin(main_ac)]
     loads = n.loads[n.loads.bus.isin(main_ac)]

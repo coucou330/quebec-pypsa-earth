@@ -37,7 +37,7 @@ fully deterministic run-to-run, so the exact figure can drift slightly between r
 
 This is also the network AC power flow would need to converge on for genuinely representative
 contingency analysis. It does not: **0/168** under full nonlinear AC PF -- see
-[POWER_FLOW.md](POWER_FLOW.md) for similar reactive compensation method applied in the 735kV which can be implemented in the future to support the 315kV network.
+[POWER_FLOW.md](POWER_FLOW.md) for the circuit-count correction and series compensation applied to the 735kV network, which can be applied to the 315kV network in the future.
 
 ![315kV reduced network -- LOPF congestion, load, shedding, and hydro dispatch](../quebec_reduced_network_map.png)
 
@@ -51,8 +51,8 @@ way. Note that this network is not rerun with LOPF so that dispatch is still acc
 
 Purpose-built for AC power flow tractability: small and heavily meshed, so it was expected to
 converge more readily than the 315kV network, making it easier to diagnose AC PF divergence. At
-current (100%) demand it fully converges (**168/168**), max line loading 79.6% -- see
-[POWER_FLOW.md](POWER_FLOW.md) for the fixes (circuit-count correction, series compensation). Light-load overvoltage (29/58 buses exceed 1.05pu at some point) is still open.
+current (100%) demand it fully converges (**168/168**), max line loading 86.2% -- see
+[POWER_FLOW.md](POWER_FLOW.md) for the fixes (circuit-count correction, series compensation). Voltage is outside the 0.95--1.05pu band at some hour on 17/58 buses (below) and 21/58 (above); no shunt reactive support is modeled.
 
 Line parameters (r/x/b) on this network's 315/345kV and 735/765kV lines come from Hydro-Quebec's
 own line-characteristics table (`network/hq_line_characteristics_by_voltage.csv`,

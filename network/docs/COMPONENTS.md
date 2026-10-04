@@ -77,8 +77,8 @@ zero `Link` components, so none of its AC PF results include interconnection flo
 - Storage-only buses get a zero-dispatch placeholder `Generator` (`carrier="hydro"`, `p_nom` =
   that bus's storage capacity) added purely so the bus is PV-eligible -- PyPSA's
   `find_bus_controls()` only ever reads `Generator.control`, never `StorageUnit.control`.
-- `load_shedding` and `reactive_compensation` carriers are modeling devices, not real generators
-  -- see [GENERATORS.md](GENERATORS.md) and the Reactive compensation section below.
+- The `load_shedding` carrier is a modeling device, not a real generator -- see
+  [GENERATORS.md](GENERATORS.md).
 
 ## StorageUnit
 
@@ -86,8 +86,7 @@ zero `Link` components, so none of its AC PF results include interconnection flo
 
 Real hydro reservoirs. `p_set(t)` is the LOPF dispatch, copied in the same way as `Generator.p_set`.
 Carries no `q_set` of its own -- any reactive support at a storage-only bus comes from that bus's
-placeholder `Generator` (above) or the reactive-compensation generator (below), not the
-`StorageUnit` itself.
+placeholder `Generator` (above), not the `StorageUnit` itself.
 
 ## Load
 
@@ -97,20 +96,12 @@ placeholder `Generator` (above) or the reactive-compensation generator (below), 
 real system-wide demand -- see [DATA_SOURCES.md](DATA_SOURCES.md)). `q_set(t)` isn't in the source
 data; `run_pf.py` sets it to `p_set * tan(acos(0.95))`, a generic lagging power factor.
 
-## Reactive compensation
-
-Modeled as a zero-real-power `Generator` per bus (`carrier="reactive_compensation"`, `p_nom=0`),
-not a separate PyPSA component -- `q_set(t) = 0.70 * that bus's own reactive demand at t`, an
-idealized continuously-variable compensator (like an SVC) rather than a fixed shunt bank. Excluded
-from the MATPOWER/pandapower exports (`export_to_matpower.py`, `export_to_pandapower.py`) since
-it injects nothing real.
-
 ## ShuntImpedance
 
 `ShuntImpedance`: `g` [S] (unused, always 0 here), `b` [S].
 
-The real PyPSA component for a physical shunt reactor/capacitor bank -- distinct from the
-`reactive_compensation` generator above. Its power scales with the square of its own bus voltage
+The PyPSA component for a physical shunt reactor/capacitor bank. Not present in the committed
+networks; `add_shunt_impedance.py` can add one per bus. Its power scales with the square of its own bus voltage
 (`q = v_mag_pu**2 * b_pu`, set in `pypsa/pf.py`), so it's a fixed admittance, not a controllable
 injection: unlike a fixed-`q_set` generator, its absorption falls off automatically as voltage
 sags. `b` has no time dimension (a single float, not a time series), so it can't switch on/off or

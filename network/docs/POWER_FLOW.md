@@ -53,33 +53,29 @@ over a very long, high-reactance line; cutting that reactance directly raises th
 limit. `COMPENSATION_FRACTION = 0.70` is a generic, tuned-not-measured assumption -- see
 [ASSUMPTIONS_AND_LIMITATIONS.md](ASSUMPTIONS_AND_LIMITATIONS.md).
 
-Result: **168/168 at current (100%) demand**, max line loading 79.6% (0 lines >= 90%).
+Result at current (100%) demand:
+
+| Metric | Value |
+|---|---|
+| Converged snapshots | 168/168 |
+| Max line loading | 86.2% (0 lines >= 90%) |
+| Buses < 0.95pu (any hour) | 17/58 |
+| Buses > 1.05pu (any hour) | 21/58 |
+| Voltage range | 0.901 -- 1.123pu |
+
+Bus types: slack at bus 114 (Robert-Bourassa), 13 PV buses, 44 PQ buses. No shunt reactive
+support is modeled.
 
 ### What is still open on the 735kV network
 
-- **Light-load overvoltage is not mitigated.** The long lines' own charging pushes voltage up to
-  about 1.13pu: 29 of 58 buses exceed 1.05pu at some point over the week (3 buses fall below
-  0.95pu). Series compensation and circuit-count correction don't address this -- they raise
-  transfer capacity under heavy load, not reactive charging at light load. A shunt reactor
-  (`ShuntImpedance`) at each affected bus is the standard fix, but a fixed reactor is sized once
-  and absorbs that same fixed amount every hour, since its susceptance `b` is a constant, not a
-  time series. Tried on the 14 buses whose required reactive support never changes sign (a
-  probe run with an ideal SVC at every overvoltage bus, `add_shunt_impedance.py`):
-
-  | Sizing | Buses >1.05pu | Buses <0.95pu |
-  |---|---|---|
-  | None | 29 | 3 |
-  | Worst-hour Q | 1 | 23 |
-  | Median Q | 3 | 12 |
-
-  Sizing each reactor to fully absorb its bus's worst overvoltage hour clears overvoltage almost
-  entirely, but at every other, less-loaded hour it absorbs more than that hour actually needs --
-  over-absorbing -- pulling voltage down further than necessary and pushing other buses below
-  0.95pu instead. Median sizing splits the difference; no fixed size clears both bands, since a
-  static device can't track hour-to-hour need the way a switched reactor or SVC could. 
-  
-  Not yet
-  adopted into the committed network.
+- **Voltage is outside the 0.95--1.05pu band at both ends.** Undervoltage occurs at load buses
+  without local voltage-controlling generation; overvoltage comes from the long lines' own charging
+  at light load. Series compensation and circuit-count correction raise transfer capacity under
+  heavy load; they do not supply or absorb reactive power at a bus. Shunt devices (`ShuntImpedance`)
+  are the standard fix, with a trade-off: `b` is a constant, not a time series, so a fixed device
+  sized for one hour over- or under-compensates at others. A device sized for the worst
+  overvoltage hour absorbs more than needed at other hours and pushes buses below 0.95pu. A
+  switched reactor or SVC tracks hour-to-hour need; a static `ShuntImpedance` cannot.
 - **Generator Q limits aren't enforced.** PV buses hold voltage with no consideration of reactive capability of generator. Reactive capability 'q_limit' is not considered in PyPYSA's power flow solver. Implementing this limit may impact acpf solution.
 
 ### The 315kV network

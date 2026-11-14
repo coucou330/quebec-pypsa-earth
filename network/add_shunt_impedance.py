@@ -51,7 +51,7 @@ import run_pf  # noqa: E402
 
 V_MIN = 0.95
 V_MAX = 1.05
-SCALE_GRID = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]
+SCALE_GRID = [1.0, 0.7, 0.4]
 
 
 def solve_ac(n: pypsa.Network) -> pd.Series:
@@ -154,7 +154,13 @@ def main():
             rows.append({"k_reactor": k_r, "k_capacitor": k_c, **evaluate(m)})
     grid = pd.DataFrame(rows)
     full = len(n.snapshots)
-    best = grid[grid.converged == full].sort_values(["out_buses", "out_bus_hours"]).iloc[0]
+    cand = grid[grid.converged == full]
+    if cand.empty:
+        cand = grid[grid.converged == grid.converged.max()]
+        print(f"[warn] no scale pair converges on all {full} snapshots; "
+              f"using the best available ({int(grid.converged.max())}/{full})")
+    best = cand.sort_values(["out_buses", "out_bus_hours"]).iloc[0]
+    #best = grid[grid.converged == full].sort_values(["out_buses", "out_bus_hours"]).iloc[0]
     print(grid.sort_values(["converged", "out_buses", "out_bus_hours"],
                            ascending=[False, True, True]).head(10).to_string(index=False))
     print(f"Grid best: reactors x{best.k_reactor}, capacitors x{best.k_capacitor}")

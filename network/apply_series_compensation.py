@@ -63,6 +63,11 @@ TARGET_LINES = {
     "1938": "66-457 circuit 2 (432.7km, high transmission angle)",
     "1049": "114-148 circuit 1 (563.4km, high transmission angle)",
     "1448": "114-148 circuit 2 (567.7km, high transmission angle)",
+    "3535": "NA-NA circuit 1 (high transmission angle)",
+
+    "161": "NA-NA circuit 1 (high transmission angle)",
+    "1653":"NA-NA circuit 1 (high transmission angle)",
+    "2387":"NA-NA circuit 1 (high transmission angle)",
 }
 
 

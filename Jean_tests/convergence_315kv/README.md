@@ -54,3 +54,14 @@ Jana a ajouté `jana_tests/find_bad_hours.py` (liste les heures divergées d'un 
 |---|---|---|---|
 | 2026-11-16 | Reproduction de la séquence d'Etienne (2ef0c21d) avec `reproduce_etienne.py`, PyPSA 1.3.0, scripts de Nathan non modifiés (versions d'Etienne) | Aucune nouvelle hypothèse : on vérifie seulement que les chiffres d'Etienne se reproduisent | Brut 3/168 (0 dans la bande 0,90-1,10) ; + circuits 10 (0) ; + compensation 157 (0) ; + shunts **162** (0), V des heures convergées 0,910-1,615 pu (max : bus 1810, 1806, 1804). Etienne avait 161 : son propre dimensionnement des shunts annonçait déjà 162. Heures divergées : 01-03 09h, 16h, 19h, 22h, 23h et 01-04 16h |
 | 2026-11-16 | Inspection du réseau final (`inspect_315kv.py`, lecture seule + DC PF) → `results/inspection/` | Aucun changement de modèle | 0/162 dans la bande ; lignes 735 kV : +65 GVAr de capacité non compensée, absorbés par des PV au-delà de toute capacité réelle ; les 6 heures divergées : ligne 3360 (pont, 410 km) à P/Pmax ≈ 1 |
+| 2026-11-17 | **Réseau 315 kV convergé** (`reseau_315kv/`, construit depuis la conversation claude.ai, à refaire pas à pas ici) | Longueurs recalculées (tracé OSM, ou vol d'oiseau × 1,08 si le tracé n'est pas fiable) ; doublon de Churchill Falls ; équivalents de Kron < 315 kV (Saguenay, Montréal) ; compensation série 40 % sur 8 corridors réels ; plafond de stabilité 40° dans le LOPF ; réactif réel (SVC/CS d'HQ, limites Q des centrales, inductances et condensateurs commutables) | 168/168 convergées avec limites Q ; 168 dans 0,90-1,10 ; 165 dans 0,95-1,05 ; V 0,922-1,035 ; LOPF sans délestage ; même solution avec PyPSA et pandapower. Limite : aucune marge de charge à la pointe (< +0,5 %) : le sud manque de réactif |
+
+## Piste du 16 nov. au soir (tests faits depuis la conversation claude.ai, pas encore refaits ici)
+Cause principale trouvée : les longueurs de lignes sont gonflées d'un facteur 1/cos(latitude)
+(PyPSA-Earth les mesure en Web Mercator, EPSG:3857), donc x et b sont trop grands d'environ 50 %.
+Avec les longueurs corrigées + la séquence d'Etienne + le bus 1810 en PV + des réactances de ligne
+735 kV : 168/168 convergés et 168/168 dans 0,90-1,10 pu, mais 19 générateurs dépassent encore
+leurs limites Q. Détails, chiffres et plan : `pistes_chat_2026-11-16.md`.
+Script fourni : `fix_line_lengths_mercator.py` (à relire avant de l'exécuter).
+
+→ **Suite (nuit du 16-17 nov.)** : le réseau convergé, le notebook qui explique chaque hypothèse et la validation sont dans `reseau_315kv/` (lire son `README.md`). `fix_line_lengths_mercator.py` applique maintenant la règle des longueurs de `reseau_315kv/reseau315.py`.

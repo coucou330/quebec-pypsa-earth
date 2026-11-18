@@ -1,0 +1,5 @@
+tour 0 : 0 bus exclus ; 27067 MW redescendus, 3970 MW restés au 315 kV ; Newton converge jusqu'à lambda = 0.25 ; V 0.671-1.132
+tour 1 : 11 bus exclus ; 26321 MW redescendus, 4716 MW restés au 315 kV ; Newton converge jusqu'à lambda = 0.55 ; V 0.604-1.193
+tour 2 : 19 bus exclus ; 25890 MW redescendus, 5147 MW restés au 315 kV ; Newton converge jusqu'à lambda = 0.95 ; V 0.591-1.123
+tour 3 : 36 bus exclus ; 23813 MW redescendus, 7224 MW restés au 315 kV ; Newton converge jusqu'à lambda = 1.0 ; V 0.926-1.123
+fin : la pointe converge (réactif illimité)
